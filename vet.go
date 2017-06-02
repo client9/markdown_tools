@@ -1,4 +1,4 @@
-package vet
+package mdtool
 
 import (
 	"bytes"
@@ -20,15 +20,28 @@ const (
 )
 
 type Fault struct {
-	Line   int
-	Column int
 	Offset int
 	Reason int
+	Row    int
+	Column int
+	Line   string
 }
 
-func (f *Fault) ComputeLine(raw []byte) {
-
-
+func GetLine(raw []byte, offset int) (row, col int, line string) {
+	for {
+		row++
+		idx := bytes.IndexByte(raw, '\n')
+		if idx == -1 {
+			break
+		}
+		if idx >= offset {
+			return row, offset, string(raw[:idx])
+		}
+		idx++
+		offset -= idx
+		raw = raw[idx:]
+	}
+	return row, offset, string(raw)
 }
 
 func verifyURL(raw []byte, faults []Fault) []Fault {
@@ -75,7 +88,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			break
 		}
 
-		aurl := raw[i:i+j]
+		aurl := raw[i : i+j]
 		log.Printf("URL: %s", aurl)
 		// we have description and url
 		// verify they don't have '\n\n' in them
@@ -117,7 +130,7 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 			log.Printf("codefense done")
 			break
 		}
-		if idx == 0 || raw[idx + i -1] == '\n' {
+		if idx == 0 || raw[idx+i-1] == '\n' {
 			count++
 			last = idx + i
 			log.Printf("CF: Got one at %d", last)
@@ -152,5 +165,15 @@ func Vet(raw []byte) []Fault {
 
 	// sort by location first
 	sort.Slice(faults, func(i, j int) bool { return faults[i].Offset < faults[j].Offset })
+
+	// convert offsets to line numbers
+	// very bad linear rescan!
+	for i := range faults {
+		row, col, line := GetLine(raw, faults[i].Offset)
+		faults[i].Row = row
+		faults[i].Column = col
+		faults[i].Line = line
+	}
+
 	return faults
 }

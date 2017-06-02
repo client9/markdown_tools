@@ -1,4 +1,4 @@
-package vet
+package mdtool
 
 import (
 	"log"
@@ -43,7 +43,7 @@ var cases = []testcase{
 	},
 	// normal url
 	{
-		input: "[text](http://golang.org/)",
+		input:  "[text](http://golang.org/)",
 		faults: []Fault{},
 	},
 	// url runaway
@@ -51,7 +51,7 @@ var cases = []testcase{
 		input: "[text](http://golang.org/",
 		faults: []Fault{
 			{
-				Reason:  FaultRunawayLinkURL,
+				Reason: FaultRunawayLinkURL,
 			},
 		},
 	},
@@ -60,7 +60,7 @@ var cases = []testcase{
 		input: "[text\n\n",
 		faults: []Fault{
 			{
-				Reason:  FaultRunawayLinkText,
+				Reason: FaultRunawayLinkText,
 			},
 		},
 	},
@@ -69,7 +69,7 @@ var cases = []testcase{
 		input: "[line1\n\nline2](http://golang.org/)",
 		faults: []Fault{
 			{
-				Reason:  FaultLinkTextWhitespace,
+				Reason: FaultLinkTextWhitespace,
 			},
 		},
 	},
@@ -78,7 +78,7 @@ var cases = []testcase{
 		input: "[line1](http://golang.\n\norg/)",
 		faults: []Fault{
 			{
-				Reason:  FaultLinkURLWhitespace,
+				Reason: FaultLinkURLWhitespace,
 			},
 		},
 	},
