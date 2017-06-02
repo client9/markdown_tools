@@ -57,13 +57,13 @@ func GetLine(raw []byte, offset int) (row, col int, line string) {
 }
 
 func verifyURL(raw []byte, faults []Fault) []Fault {
-	for i := 0; i < len(raw); i++ {
-		i := bytes.IndexByte(raw[i:], '[')
+	for idx := 0; idx < len(raw); idx++ {
+		i := bytes.IndexByte(raw[idx:], '[')
 		if i == -1 {
 			break
 		}
 		start := i
-		i++
+		i+= idx + 1
 		j := bytes.IndexByte(raw[i:], ']')
 		if j == -1 {
 			// runaway!
@@ -73,7 +73,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			})
 			break
 		}
-		desc := raw[i : i+j]
+		desc := raw[i:i+j]
 		i += j + 1
 
 		// skip space and tabs
@@ -117,7 +117,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		// TBD is link valid in form?
 
 		// otherwise ok!
-		i = j
+		idx = i + j
 	}
 	return faults
 }
