@@ -2,7 +2,6 @@ package mdtool
 
 import (
 	"bytes"
-	"log"
 	"sort"
 )
 
@@ -10,18 +9,31 @@ var (
 	newlines = []byte{'\n', '\n'}
 )
 
+type FaultType int
+
 const (
-	FaultZero = iota
-	FaultRunawayCodeFence
-	FaultRunawayLinkText
-	FaultRunawayLinkURL
-	FaultLinkTextWhitespace
-	FaultLinkURLWhitespace
+	FaultZero = FaultType(0)
+	FaultRunawayCodeFence = FaultType(1)
+	FaultRunawayLinkText = FaultType(2)
+	FaultRunawayLinkURL = FaultType(3)
+	FaultLinkTextWhitespace = FaultType(4)
+	FaultLinkURLWhitespace = FaultType(5)
 )
+
+func (s FaultType) String() string {
+	switch s {
+		case FaultRunawayCodeFence: return "Runaway Code Fence"
+		case FaultRunawayLinkText: return "Runaway Lint Text"
+		case FaultRunawayLinkURL: return "Runaway Link URL"
+		case FaultLinkTextWhitespace: return "Link Text with Whitespace"
+		case FaultLinkURLWhitespace: return "Link URL with Whitespace"
+	}
+	return "FAIL"
+}
 
 type Fault struct {
 	Offset int
-	Reason int
+	Reason FaultType
 	Row    int
 	Column int
 	Line   string
@@ -62,14 +74,12 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			break
 		}
 		desc := raw[i : i+j]
-		log.Printf("GOT DESC: %s", desc)
 		i += j + 1
 
 		// skip space and tabs
 		for i < len(raw) && (raw[i] == ' ' || raw[i] == '\t') {
 			i++
 		}
-		log.Printf("emaining: %s", raw[i:])
 		// if ran out, then assume [whatever] is just ok
 		if i == len(raw) {
 			break
@@ -89,7 +99,6 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		}
 
 		aurl := raw[i : i+j]
-		log.Printf("URL: %s", aurl)
 		// we have description and url
 		// verify they don't have '\n\n' in them
 		if bytes.Contains(desc, newlines) {
@@ -124,16 +133,13 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 	idx := 0
 	last := 0
 	for idx < len(raw) {
-		log.Printf("IDX=%d", idx)
 		i := bytes.Index(raw[idx:], codeFenceMarker)
 		if i == -1 {
-			log.Printf("codefense done")
 			break
 		}
 		if idx == 0 || raw[idx+i-1] == '\n' {
 			count++
 			last = idx + i
-			log.Printf("CF: Got one at %d", last)
 		}
 		idx += i + len(codeFenceMarker) + 1
 	}

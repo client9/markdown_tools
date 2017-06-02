@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"fmt"
 	"log"
 	"os"
 
@@ -28,7 +29,7 @@ func main() {
                 }
 		faults := mdtool.Vet(rawin)
 		for _, f := range faults {
-			log.Printf("%d:%d %q", f.Row, f.Column, f.Line)
+			fmt.Printf("%d:%d offset=%d reason=%s %q\n", f.Row, f.Column, f.Offset, f.Reason, f.Line)
 		}
 		if len(faults) > 0 {
 			os.Exit(2)
