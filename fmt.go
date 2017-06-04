@@ -24,7 +24,9 @@ type markdownRenderer struct {
 	columnWidths []int
 	cells        []string
 
-	listBullet      byte
+	hrChar          byte
+	hrLength        int
+	listBulletChar  byte
 	listBulletSpace string
 	listIndent      string
 	headingStyle    string
@@ -130,7 +132,8 @@ func (mr *markdownRenderer) Header(out *bytes.Buffer, text func() bool, level in
 
 func (_ *markdownRenderer) HRule(out *bytes.Buffer) {
 	doubleSpace(out)
-	out.WriteString("---\n")
+	out.WriteString(strings.Repat(mr.hrChar, mr.hrLength))
+	out.WriteByte('\n')
 }
 func (mr *markdownRenderer) List(out *bytes.Buffer, text func() bool, flags int) {
 	marker := out.Len()
@@ -154,7 +157,7 @@ func (mr *markdownRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) 
 		mr.orderedListCounter[mr.listDepth]++
 	} else {
 		out.WriteString(strings.Repeat(mr.listIndent, mr.listDepth-1))
-		out.WriteByte(mr.listBullet)
+		out.WriteByte(mr.listBulletChar)
 		out.WriteString(mr.listBulletSpace)
 		out.Write(text)
 		//indentwriter.New(out, 1).Write(text)
@@ -447,6 +450,8 @@ func doubleSpace(out *bytes.Buffer) {
 func NewRenderer(opt *Options) blackfriday.Renderer {
 	if opt == nil {
 		opt = &Options{
+			HrChar:          '-',
+			HrLength:        3,
 			ListBullet:      '-',
 			ListIndent:      "  ",
 			ListBulletSpace: " ", // "\t",
@@ -466,7 +471,9 @@ func NewRenderer(opt *Options) blackfriday.Renderer {
 		paragraph:          make(map[int]bool),
 
 		stringWidth:     runewidth.StringWidth,
-		listBullet:      opt.ListBullet,
+		hrChar:          opt.HrChar,
+		hrLength:        opt.HrLength,
+		listBulletChar:  opt.ListBulletChar,
 		listIndent:      opt.ListIndent,
 		listBulletSpace: opt.ListBulletSpace,
 		headingStyle:    opt.HeadingStyle,
@@ -478,8 +485,8 @@ type Options struct {
 	// ListIndent is the identation string to use
 	ListIndent string
 
-	// ListBullet is the bullet for unordered lists, either '-' or '*'
-	ListBullet byte
+	// ListBulletChar is the bullet for unordered lists, either '-' or '*'
+	ListBulletChar byte
 
 	// ListBulletSpace is whitespace between bullet and text
 	ListBulletSpace string
