@@ -9,28 +9,41 @@ var (
 	newlines = []byte{'\n', '\n'}
 )
 
+// FaultType defines various markdown structural problems
 type FaultType int
 
 const (
+	// FaultZero is an unknown type
 	FaultZero = FaultType(0)
+	// FaultRunawayCodeFence is an un-ended code block
 	FaultRunawayCodeFence = FaultType(1)
+	// FaultRunawayLinkText is a broken URL
 	FaultRunawayLinkText = FaultType(2)
+	// FaultRunawayLinkURL is a broken URL with un-ended ']'
 	FaultRunawayLinkURL = FaultType(3)
+	// FaultLinkTextWhitespace is a broken URL with text have newlines
 	FaultLinkTextWhitespace = FaultType(4)
+	// FaultLinkURLWhitespace is a broken URL with URL having newlines
 	FaultLinkURLWhitespace = FaultType(5)
 )
 
 func (s FaultType) String() string {
 	switch s {
-		case FaultRunawayCodeFence: return "Runaway Code Fence"
-		case FaultRunawayLinkText: return "Runaway Lint Text"
-		case FaultRunawayLinkURL: return "Runaway Link URL"
-		case FaultLinkTextWhitespace: return "Link Text with Whitespace"
-		case FaultLinkURLWhitespace: return "Link URL with Whitespace"
+	case FaultRunawayCodeFence:
+		return "Runaway Code Fence"
+	case FaultRunawayLinkText:
+		return "Runaway Lint Text"
+	case FaultRunawayLinkURL:
+		return "Runaway Link URL"
+	case FaultLinkTextWhitespace:
+		return "Link Text with Whitespace"
+	case FaultLinkURLWhitespace:
+		return "Link URL with Whitespace"
 	}
 	return "FAIL"
 }
 
+// Fault defined the type and location of markdown problem
 type Fault struct {
 	Offset int
 	Reason FaultType
@@ -39,6 +52,7 @@ type Fault struct {
 	Line   string
 }
 
+// GetLine converts an offset into line with row, col info
 func GetLine(raw []byte, offset int) (row, col int, line string) {
 	for {
 		row++
@@ -63,7 +77,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			break
 		}
 		start := i
-		i+= idx + 1
+		i += idx + 1
 		j := bytes.IndexByte(raw[i:], ']')
 		if j == -1 {
 			// runaway!
@@ -73,7 +87,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			})
 			break
 		}
-		desc := raw[i:i+j]
+		desc := raw[i : i+j]
 		i += j + 1
 
 		// skip space and tabs
@@ -152,8 +166,10 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 	return faults
 }
 
+// VetFunc defines a markdown vet function
 type VetFunc func([]byte, []Fault) []Fault
 
+// Vet is the main function to find structural problems with Markdown
 func Vet(raw []byte) []Fault {
 	faults := []Fault{}
 	vetfuncs := []VetFunc{
