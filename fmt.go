@@ -3,7 +3,6 @@ package mdtool
 import (
 	"bytes"
 	"go/format"
-	"io"
 	"strconv"
 	"strings"
 
@@ -25,14 +24,12 @@ type markdownRenderer struct {
 	cells        []string
 
 	lineLength      int
-	listBulletChar  byte
+	listBulletChar  string
 	listBulletSpace string
 	listIndent      string
 	headingStyle    string
 	hrText          string
 	opt             Options
-
-	writer io.WriteCloser
 
 	// stringWidth is used internally to calculate visual width of a string.
 	stringWidth func(s string) (width int)
@@ -166,30 +163,15 @@ func (mr *markdownRenderer) List(out *bytes.Buffer, text func() bool, flags int)
 func (mr *markdownRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 
 	if flags&blackfriday.LIST_TYPE_ORDERED != 0 {
-		if false {
-			out.WriteString(strings.Repeat(mr.listIndent, mr.listDepth-1))
-			out.WriteString(strconv.Itoa(mr.orderedListCounter[mr.listDepth]))
-			out.WriteByte('.')
-			out.WriteString(mr.listBulletSpace)
-			out.Write(text)
-		} else {
-			spaces := strings.Repeat(mr.listIndent, mr.listDepth-1)
-			digits := strconv.Itoa(mr.orderedListCounter[mr.listDepth])
-			prefix := spaces + digits + "." + mr.listBulletSpace
-			indent := spaces + strings.Repeat(" ", len(digits)) + " " + mr.listBulletSpace
-			out.Write(WordWrap(text, mr.lineLength, prefix, indent))
-		}
+		spaces := strings.Repeat(mr.listIndent, mr.listDepth-1)
+		digits := strconv.Itoa(mr.orderedListCounter[mr.listDepth])
+		prefix := spaces + digits + "." + mr.listBulletSpace
+		indent := spaces + strings.Repeat(" ", len(digits)) + " " + mr.listBulletSpace
+		out.Write(WordWrap(text, mr.lineLength, prefix, indent))
 		mr.orderedListCounter[mr.listDepth]++
 	} else {
-
-		/*
-			out.WriteString(strings.Repeat(mr.listIndent, mr.listDepth-1))
-			out.WriteByte(mr.listBulletChar)
-			out.WriteString(mr.listBulletSpace)
-			out.Write(text)
-		*/
 		spaces := strings.Repeat(mr.listIndent, mr.listDepth-1)
-		prefix := spaces + string(mr.listBulletChar) + mr.listBulletSpace
+		prefix := spaces + mr.listBulletChar + mr.listBulletSpace
 		indent := spaces + " " + mr.listBulletSpace
 		out.Write(WordWrap(text, mr.lineLength, prefix, indent))
 	}
@@ -561,7 +543,7 @@ func NewRenderer(opt *Options) blackfriday.Renderer {
 		stringWidth:     runewidth.StringWidth,
 		lineLength:      opt.LineLength,
 		hrText:          strings.Repeat(opt.HrChar, opt.HrLength),
-		listBulletChar:  opt.ListBulletChar,
+		listBulletChar:  string(opt.ListBulletChar),
 		listIndent:      opt.ListIndent,
 		listBulletSpace: opt.ListBulletSpace,
 		headingStyle:    opt.HeadingStyle,
