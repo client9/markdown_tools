@@ -8,7 +8,6 @@ import (
 
 	"github.com/client9/markdown_tools"
 
-	gfm "github.com/shurcooL/github_flavored_markdown"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -16,6 +15,7 @@ var (
 	vetCommand    = kingpin.Command("vet", "vet markdown structure")
 	fmtComment    = kingpin.Command("fmt", "reformat markdown")
 	renderCommand = kingpin.Command("render", "render markdown to another format")
+	renderType    = renderCommand.Arg("type", "render type").Default("html").String()
 )
 
 func main() {
@@ -44,7 +44,15 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		rawout := gfm.Markdown(rawin)
+		var rawout []byte
+		switch *renderType {
+		case "html":
+			rawout = mdtool.RenderHTML(rawin)
+		case "github":
+			rawout = mdtool.RenderGitHub(rawin)
+		default:
+			log.Fatalf("Unknown render type %q", *renderType)
+		}
 		os.Stdout.Write(rawout)
 	}
 }
