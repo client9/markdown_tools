@@ -24,12 +24,11 @@ type markdownRenderer struct {
 	columnWidths []int
 	cells        []string
 
-	hrChar          byte
-	hrLength        int
 	listBulletChar  byte
 	listBulletSpace string
 	listIndent      string
 	headingStyle    string
+	hrText          string
 	opt             Options
 
 	// stringWidth is used internally to calculate visual width of a string.
@@ -130,9 +129,9 @@ func (mr *markdownRenderer) Header(out *bytes.Buffer, text func() bool, level in
 	out.WriteString("\n")
 }
 
-func (_ *markdownRenderer) HRule(out *bytes.Buffer) {
+func (mr *markdownRenderer) HRule(out *bytes.Buffer) {
 	doubleSpace(out)
-	out.WriteString(strings.Repat(mr.hrChar, mr.hrLength))
+	out.WriteString(mr.hrText)
 	out.WriteByte('\n')
 }
 func (mr *markdownRenderer) List(out *bytes.Buffer, text func() bool, flags int) {
@@ -450,19 +449,26 @@ func doubleSpace(out *bytes.Buffer) {
 func NewRenderer(opt *Options) blackfriday.Renderer {
 	if opt == nil {
 		opt = &Options{
-			HrChar:          '-',
+			HrChar:          "-",
 			HrLength:        3,
-			ListBullet:      '-',
+			ListBulletChar:  '-',
 			ListIndent:      "  ",
 			ListBulletSpace: " ", // "\t",
 			HeadingStyle:    "atx",
 		}
 	}
-	switch opt.ListBullet {
+	switch opt.ListBulletChar {
 	case '-', '+', '*':
 		break
 	default:
 		panic("unknown bullet type")
+	}
+
+	switch opt.HrChar {
+	case "-":
+		break
+	default:
+		panic("unknown HR char")
 	}
 
 	return &markdownRenderer{
@@ -471,8 +477,7 @@ func NewRenderer(opt *Options) blackfriday.Renderer {
 		paragraph:          make(map[int]bool),
 
 		stringWidth:     runewidth.StringWidth,
-		hrChar:          opt.HrChar,
-		hrLength:        opt.HrLength,
+		hrText:          strings.Repeat(opt.HrChar, opt.HrLength),
 		listBulletChar:  opt.ListBulletChar,
 		listIndent:      opt.ListIndent,
 		listBulletSpace: opt.ListBulletSpace,
@@ -494,6 +499,12 @@ type Options struct {
 	// HeadingStyle controls the markdown style for headlines
 	//  so far it's only hash, or nothash
 	HeadingStyle string
+
+	// HrChar is the character to use for horizontal rules
+	HrChar string
+
+	// HrLength is the length of the horizontal rule in chars
+	HrLength int
 }
 
 // Fmt formats Markdown.
@@ -506,7 +517,8 @@ func Fmt(text []byte, opt *Options) []byte {
 		blackfriday.EXTENSION_AUTOLINK |
 		blackfriday.EXTENSION_STRIKETHROUGH |
 		blackfriday.EXTENSION_SPACE_HEADERS |
-		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
+		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
+		blackfriday.EXTENSION_DEFINITION_LISTS
 
 	output := blackfriday.Markdown(text, NewRenderer(opt), extensions)
 	return output
