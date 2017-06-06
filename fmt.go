@@ -29,7 +29,7 @@ type markdownRenderer struct {
 	listIndent      string
 	headingStyle    string
 	hrText          string
-	opt             Options
+	opt             FmtOptions
 
 	// stringWidth is used internally to calculate visual width of a string.
 	stringWidth func(s string) (width int)
@@ -509,30 +509,30 @@ func doubleSpace(out *bytes.Buffer) {
 
 // NewRenderer returns a Markdown renderer.
 // If opt is nil the defaults are used.
-func NewRenderer(opt *Options) blackfriday.Renderer {
+func NewRenderer(opt *FmtOptions) blackfriday.Renderer {
 	if opt == nil {
-		opt = &Options{
+		opt = &FmtOptions{
 			LineLength:      78,
 			HrChar:          "-",
 			HrLength:        3,
-			ListBulletChar:  '-',
+			ListBulletChar:  "*",
 			ListIndent:      "  ",
 			ListBulletSpace: " ", // "\t",
 			HeadingStyle:    "atx",
 		}
 	}
 	switch opt.ListBulletChar {
-	case '-', '+', '*':
+	case "-", "+", "*":
 		break
 	default:
-		panic("unknown bullet type")
+		opt.ListBulletChar = "-"
 	}
 
 	switch opt.HrChar {
 	case "-":
 		break
 	default:
-		panic("unknown HR char")
+		opt.HrChar = "-"
 	}
 
 	return &markdownRenderer{
@@ -543,15 +543,15 @@ func NewRenderer(opt *Options) blackfriday.Renderer {
 		stringWidth:     runewidth.StringWidth,
 		lineLength:      opt.LineLength,
 		hrText:          strings.Repeat(opt.HrChar, opt.HrLength),
-		listBulletChar:  string(opt.ListBulletChar),
+		listBulletChar:  opt.ListBulletChar,
 		listIndent:      opt.ListIndent,
 		listBulletSpace: opt.ListBulletSpace,
 		headingStyle:    opt.HeadingStyle,
 	}
 }
 
-// Options specifies options for formatting.
-type Options struct {
+// FmtOptions specifies options for formatting.
+type FmtOptions struct {
 	// LineLength wraps lines at N characters, or -1 for run-on
 	LineLength int
 
@@ -559,7 +559,7 @@ type Options struct {
 	ListIndent string
 
 	// ListBulletChar is the bullet for unordered lists, either '-' or '*'
-	ListBulletChar byte
+	ListBulletChar string
 
 	// ListBulletSpace is whitespace between bullet and text
 	ListBulletSpace string
@@ -576,7 +576,7 @@ type Options struct {
 }
 
 // Fmt formats Markdown.
-func Fmt(text []byte, opt *Options) []byte {
+func Fmt(text []byte, opt *FmtOptions) []byte {
 
 	// extensions for GitHub Flavored Markdown-like parsing.
 	const extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |

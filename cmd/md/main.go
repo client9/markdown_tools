@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/client9/markdown_tools"
 
@@ -12,8 +13,15 @@ import (
 )
 
 var (
-	vetCommand    = kingpin.Command("vet", "vet markdown structure")
-	fmtComment    = kingpin.Command("fmt", "reformat markdown")
+	vetCommand         = kingpin.Command("vet", "vet markdown structure")
+	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
+	fmtLineLength      = fmtCommand.Flag("linelength", "line length, -1=unlimited").Default("70").Int()
+	fmtHrLength        = fmtCommand.Flag("hrlength", "HR length").Default("3").Int()
+	fmtHrChar          = fmtCommand.Flag("hrchar", "HR char").Default("-").String()
+	fmtListIndent      = fmtCommand.Flag("listindent", "list indent").Default("  ").String()
+	fmtListBulletChar  = fmtCommand.Flag("listbullet", "list bullet").Default("-").String()
+	fmtListBulletSpace = fmtCommand.Flag("listbulletspace", "list bullet space").Default(" ").String()
+
 	renderCommand = kingpin.Command("render", "render markdown to another format")
 	renderType    = renderCommand.Arg("type", "render type").Default("html").String()
 )
@@ -25,7 +33,19 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		out := mdtool.Fmt(rawin, nil)
+
+		bulletSpace := strings.Replace(*fmtListBulletSpace, "\\t", "\t", -1)
+		bulletIndent := strings.Replace(*fmtListIndent, "\\t", "\t", -1)
+
+		opt := mdtool.FmtOptions{
+			LineLength:      *fmtLineLength,
+			HrChar:          *fmtHrChar,
+			HrLength:        *fmtHrLength,
+			ListBulletChar:  *fmtListBulletChar,
+			ListIndent:      bulletIndent,
+			ListBulletSpace: bulletSpace,
+		}
+		out := mdtool.Fmt(rawin, &opt)
 		fmt.Println(string(out))
 	case "vet":
 		rawin, err := ioutil.ReadAll(os.Stdin)
