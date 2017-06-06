@@ -13,6 +13,11 @@ import (
 )
 
 var (
+	version = "unreleased"
+)
+
+var (
+	versionCommand     = kingpin.Command("version", "show version and exit")
 	vetCommand         = kingpin.Command("vet", "vet markdown structure")
 	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
 	fmtLineLength      = fmtCommand.Flag("linelength", "line length, -1=unlimited").Default("70").Int()
@@ -28,6 +33,9 @@ var (
 
 func main() {
 	switch kingpin.Parse() {
+	case "version":
+		fmt.Println(version)
+		os.Exit(2)
 	case "fmt":
 		rawin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
