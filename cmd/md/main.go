@@ -20,6 +20,8 @@ var (
 	versionCommand     = kingpin.Command("version", "show version and exit")
 	vetCommand         = kingpin.Command("vet", "vet markdown structure")
 	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
+	fmtWrite           = fmtCommand.Flag("write", "write in place").Short('w').Bool()
+	fmtFiles           = fmtCommand.Arg("files", "file to process, if none use stdin").Strings()
 	fmtLineLength      = fmtCommand.Flag("linelength", "line length, -1=unlimited").Default("70").Int()
 	fmtHrLength        = fmtCommand.Flag("hrlength", "HR length").Default("3").Int()
 	fmtHrChar          = fmtCommand.Flag("hrchar", "HR char").Default("-").String()
@@ -37,14 +39,8 @@ func main() {
 		fmt.Println(version)
 		os.Exit(2)
 	case "fmt":
-		rawin, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		bulletSpace := strings.Replace(*fmtListBulletSpace, "\\t", "\t", -1)
 		bulletIndent := strings.Replace(*fmtListIndent, "\\t", "\t", -1)
-
 		opt := mdtool.FmtOptions{
 			LineLength:      *fmtLineLength,
 			HrChar:          *fmtHrChar,
@@ -53,8 +49,29 @@ func main() {
 			ListIndent:      bulletIndent,
 			ListBulletSpace: bulletSpace,
 		}
-		out := mdtool.Fmt(rawin, &opt)
-		fmt.Println(string(out))
+
+		if len(*fmtFiles) == 0 {
+			rawin, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatal(err)
+			}
+			out := mdtool.Fmt(rawin, &opt)
+			fmt.Println(string(out))
+			return
+		}
+		for _, name := range *fmtFiles {
+			rawin, err := ioutil.ReadFile(name)
+			if err != nil {
+				log.Fatalf("Can't read %q: %s", name, err)
+			}
+			out := mdtool.Fmt(rawin, &opt)
+
+			if !*fmtWrite {
+				fmt.Println(string(out))
+				continue
+			}
+			ioutil.WriteFile(name, out, 0)
+		}
 	case "vet":
 		rawin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
