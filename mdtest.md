@@ -79,7 +79,26 @@ No.
 [link test] (https://www.client9.com/)
 ```	
 
-## autolink
+## bracket autolink
 
-<https://www.client9.com/>
+```
+<https://www.client9.com>
+```
 
+<https://www.client9.com>
+
+### autolink with parens
+
+```
+<https://www.client9.com/?(foo)>
+```
+
+<https://www.client9.com/?(foo)>
+
+## naked link
+
+```
+https://www.client9.com/?(foo)
+```
+
+https://www.client9.com/?(foo)
