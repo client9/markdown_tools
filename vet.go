@@ -174,7 +174,16 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 			count++
 			last = idx + i
 			idx = last + len(codeFenceMarker)
-			if idx < len(raw) && (raw[idx] == ' ' || raw[idx] == '\t') {
+
+			// valid is ```[ ]*[a-z]*\n
+			// invalid is ```[ ]+\n
+
+			// skip whitespace
+			ws := 0
+			for idx = last + len(codeFenceMarker); idx < len(raw) && raw[idx] == ' '; idx ++ {  ws++ }
+
+			// if next char is a newline, then fault
+			if idx < len(raw) && ws > 0 && raw[idx] == '\n' {
 				faults = append(faults, Fault{
 					Offset: idx - len(codeFenceMarker),
 					Reason: FaultCodeFenceTrailingWhitespace,

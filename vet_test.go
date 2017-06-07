@@ -100,6 +100,11 @@ var cases = []testcase{
 			},
 		},
 	},
+	// trailing whitespace  after code fence plus tag
+	{
+		input: "``` go\ncode\n```\nsomething\n",
+		faults: []Fault{},
+	},
 }
 
 func TestVet(t *testing.T) {
