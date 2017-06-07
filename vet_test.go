@@ -91,6 +91,15 @@ var cases = []testcase{
 			},
 		},
 	},
+	// trailing whitespace after code fense
+	{
+		input: "```\ncode\n``` \nsomething\n",
+		faults: []Fault{
+			{
+				Reason: FaultCodeFenceTrailingWhitespace,
+			},
+		},
+	},
 }
 
 func TestVet(t *testing.T) {

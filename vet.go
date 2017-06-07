@@ -27,6 +27,8 @@ const (
 	FaultLinkURLWhitespace = FaultType(5)
 	// FaultLinkSpaceBetweenTextAndLink is whitespace between ']' and '('
 	FaultLinkSpaceBetweenTextAndLink = FaultType(6)
+	// FaultCodeFenceTrailingWhitespace is WS after a ```"
+	FaultCodeFenceTrailingWhitespace = FaultType(7)
 )
 
 func (s FaultType) String() string {
@@ -43,6 +45,8 @@ func (s FaultType) String() string {
 		return "Link URL with Whitespace"
 	case FaultLinkSpaceBetweenTextAndLink:
 		return "Whitespace between Link Text and Link URL"
+	case FaultCodeFenceTrailingWhitespace:
+		return "Whitespace after ``` tag"
 	}
 	return "FAIL"
 }
@@ -169,8 +173,16 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 		if idx == 0 || raw[idx+i-1] == '\n' {
 			count++
 			last = idx + i
+			idx = last + len(codeFenceMarker)
+			if idx < len(raw) && (raw[idx] == ' ' || raw[idx] == '\t') {
+				faults = append(faults, Fault{
+					Offset: idx - len(codeFenceMarker),
+					Reason: FaultCodeFenceTrailingWhitespace,
+				})
+			}
+		} else {
+			idx += i + len(codeFenceMarker)
 		}
-		idx += i + len(codeFenceMarker) + 1
 	}
 	if count%2 == 1 {
 		faults = append(faults, Fault{
