@@ -70,3 +70,11 @@ No.
  "line 1 line 2"
 )
 ```
+
+## link text/url spacing
+
+[link test] (https://www.client9.com/)
+
+```
+[link test] (https://www.client9.com/)
+```	
