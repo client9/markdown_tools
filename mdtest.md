@@ -30,3 +30,22 @@ No.
 
 [link test]
    (https://www.client9.com)
+
+## link with title
+
+```markdown
+[link test](https://www.client9.com/ "client9")
+```
+
+[link test](https://www.client9.com/ "client9")
+
+## link with title split on two lines
+
+[link test](https://www.client9.com/ "line 1
+   line 2")
+
+```markdown
+[link test](https://www.client9.com/ "line 1
+   line 2")
+```
+
