@@ -18,10 +18,8 @@ func WordWrap(src []byte, length int, prefix string, indent string) []byte {
 	col := prefixLen
 	words := bytes.Fields(src)
 	for _, word := range words {
-		// if word is so big, just put it on it's own line
+		// if word is so big, just add it an call it a day
 		if len(word) >= length-indentLen {
-			out.WriteByte('\n')
-			out.WriteString(indent)
 			out.Write(word)
 			out.WriteByte('\n')
 			out.WriteString(indent)
