@@ -82,6 +82,15 @@ var cases = []testcase{
 			},
 		},
 	},
+	// whitespace between text and url
+	{
+		input: "[text] (https://golang.org)",
+		faults: []Fault{
+			{
+				Reason: FaultLinkSpaceBetweenTextAndLink,
+			},
+		},
+	},
 }
 
 func TestVet(t *testing.T) {

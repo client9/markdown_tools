@@ -25,6 +25,8 @@ const (
 	FaultLinkTextWhitespace = FaultType(4)
 	// FaultLinkURLWhitespace is a broken URL with URL having newlines
 	FaultLinkURLWhitespace = FaultType(5)
+	// FaultLinkSpaceBetweenTextAndLink is whitespace between ']' and '('
+	FaultLinkSpaceBetweenTextAndLink = FaultType(6)
 )
 
 func (s FaultType) String() string {
@@ -39,6 +41,8 @@ func (s FaultType) String() string {
 		return "Link Text with Whitespace"
 	case FaultLinkURLWhitespace:
 		return "Link URL with Whitespace"
+	case FaultLinkSpaceBetweenTextAndLink:
+		return "Whitespace between Link Text and Link URL"
 	}
 	return "FAIL"
 }
@@ -76,7 +80,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		if i == -1 {
 			break
 		}
-		start := i
+		start := idx + i
 		i += idx + 1
 		j := bytes.IndexByte(raw[i:], ']')
 		if j == -1 {
@@ -91,7 +95,9 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		i += j + 1
 
 		// skip space and tabs
+		spaceCount := 0
 		for i < len(raw) && (raw[i] == ' ' || raw[i] == '\t') {
+			spaceCount++
 			i++
 		}
 		// if ran out, then assume [whatever] is just ok
@@ -102,6 +108,15 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		if raw[i] != '(' {
 			continue
 		}
+		// if we had spaces between ']' and '(' then
+		// something is wrong.
+		if spaceCount > 0 {
+			faults = append(faults, Fault{
+				Offset: start,
+				Reason: FaultLinkSpaceBetweenTextAndLink,
+			})
+		}
+
 		i++
 		j = bytes.IndexByte(raw[i:], ')')
 		if j == -1 {

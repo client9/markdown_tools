@@ -19,6 +19,7 @@ var (
 var (
 	versionCommand     = kingpin.Command("version", "show version and exit")
 	vetCommand         = kingpin.Command("vet", "vet markdown structure")
+	vetFiles           = vetCommand.Arg("files", "file to process, if none use stdin").Strings()
 	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
 	fmtWrite           = fmtCommand.Flag("write", "write in place").Short('w').Bool()
 	fmtFiles           = fmtCommand.Arg("files", "file to process, if none use stdin").Strings()
@@ -73,15 +74,34 @@ func main() {
 			ioutil.WriteFile(name, out, 0)
 		}
 	case "vet":
-		rawin, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			log.Fatal(err)
+		errCount := 0
+		if len(*vetFiles) == 0 {
+			rawin, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatal(err)
+			}
+			faults := mdtool.Vet(rawin)
+
+			for _, f := range faults {
+				errCount++
+				fmt.Printf("%d:%d offset=%d reason=%s %q\n", f.Row, f.Column, f.Offset, f.Reason, f.Line)
+			}
+			if len(faults) > 0 {
+				os.Exit(2)
+			}
 		}
-		faults := mdtool.Vet(rawin)
-		for _, f := range faults {
-			fmt.Printf("%d:%d offset=%d reason=%s %q\n", f.Row, f.Column, f.Offset, f.Reason, f.Line)
+		for _, name := range *vetFiles {
+			rawin, err := ioutil.ReadFile(name)
+			if err != nil {
+				log.Fatalf("Can't read %q: %s", name, err)
+			}
+			faults := mdtool.Vet(rawin)
+			for _, f := range faults {
+				errCount++
+				fmt.Printf("%d:%d offset=%d reason=%s %q\n", f.Row, f.Column, f.Offset, f.Reason, f.Line)
+			}
 		}
-		if len(faults) > 0 {
+		if errCount > 0 {
 			os.Exit(2)
 		}
 	case "render":
