@@ -11,7 +11,7 @@
 
 yes.
 
-```markdown
+```
 [link 
   test](https://www.client9.com)
 ```
@@ -23,7 +23,7 @@ yes.
 
 No.
 
-```markdown
+```
 [link test]
    (https://www.client9.com)
 ```
@@ -33,7 +33,7 @@ No.
 
 ## link with title
 
-```markdown
+```
 [link test](https://www.client9.com/ "client9")
 ```
 
@@ -44,7 +44,7 @@ No.
 [link test](https://www.client9.com/ "line 1
    line 2")
 
-```markdown
+```
 [link test](https://www.client9.com/ "line 1
    line 2")
 ```
@@ -54,7 +54,7 @@ No.
 [link test](https://www.client9.com/ 
  "line 1 line 2")
 
-```markdown
+```
 [link test](https://www.client9.com/
  "line 1 line 2")
 ```
@@ -65,7 +65,7 @@ No.
  "line 1 line 2"
 )
 
-```markdown
+```
 [link test](https://www.client9.com/
  "line 1 line 2"
 )
@@ -77,7 +77,7 @@ No.
 
 ```
 [link test] (https://www.client9.com/)
-```	
+```
 
 ## bracket autolink
 
