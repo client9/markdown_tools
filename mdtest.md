@@ -1,6 +1,10 @@
 
 ## normal link
 
+```
+[link test](https://www.client9.com/)
+```
+
 [link test](https://www.client9.com/)
 
 ## can link text be split?
