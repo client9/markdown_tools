@@ -49,3 +49,24 @@ No.
    line 2")
 ```
 
+## link title on separate lint
+
+[link test](https://www.client9.com/ 
+ "line 1 line 2")
+
+```markdown
+[link test](https://www.client9.com/
+ "line 1 line 2")
+```
+
+## link title  with parans on new line
+
+[link test](https://www.client9.com/ 
+ "line 1 line 2"
+)
+
+```markdown
+[link test](https://www.client9.com/
+ "line 1 line 2"
+)
+```
