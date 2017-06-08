@@ -14,10 +14,10 @@
   revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
-  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
-  version = "v0.0.2"
+  revision = "97311d9f7767e3d6f422ea06661bc2c7a19e8a5d"
 
 [[projects]]
   branch = "master"
@@ -89,7 +89,7 @@
   branch = "master"
   name = "github.com/sourcegraph/syntaxhighlight"
   packages = ["."]
-  revision = "bd320f5d308e1a3c4314c678d8227a0d72574ae7"
+  revision = "c95ac474b7cb9c711f4591b553a2caaa24ea3d37"
 
 [[projects]]
   branch = "master"
@@ -103,9 +103,15 @@
   packages = ["."]
   revision = "7f0871f2e17818990e4eed73f9b5c2f429501228"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/russross/blackfriday.v2"
+  packages = ["."]
+  revision = "e7910a813fbd94acce2680899175fa106b7b1787"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f95a0726dd0074246bc86693a1ac43180927e55fcb617895a30918ce1e6e42ae"
+  inputs-digest = "f82df8fd82dbd1f6d759be14db5f8941f0a058fd343e739b118f83353becfc3a"
   solver-name = "gps-cdcl"
   solver-version = 1

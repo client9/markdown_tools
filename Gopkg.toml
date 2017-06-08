@@ -67,8 +67,8 @@
 
 
 [[constraint]]
+  branch = "master"
   name = "github.com/mattn/go-runewidth"
-  version = "0.0.2"
 
 [[constraint]]
   branch = "master"
@@ -85,3 +85,7 @@
 [[constraint]]
   branch = "master"
   name = "gopkg.in/alecthomas/kingpin.v2"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/russross/blackfriday.v2"

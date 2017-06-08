@@ -21,6 +21,7 @@ var (
 	vetCommand         = kingpin.Command("vet", "vet markdown structure")
 	vetFiles           = vetCommand.Arg("files", "file to process, if none use stdin").Strings()
 	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
+	fmt2Command        = kingpin.Command("fmt2", "reformat markdown, take 2")
 	fmtWrite           = fmtCommand.Flag("write", "write in place").Short('w').Bool()
 	fmtFiles           = fmtCommand.Arg("files", "file to process, if none use stdin").Strings()
 	fmtLineLength      = fmtCommand.Flag("linelength", "line length, -1=unlimited").Default("70").Int()
@@ -39,6 +40,14 @@ func main() {
 	case "version":
 		fmt.Println(version)
 		os.Exit(2)
+	case "fmt2":
+		rawin, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		out := mdtool.Fmt2(rawin)
+		fmt.Println(string(out))
+		return
 	case "fmt":
 		bulletSpace := strings.Replace(*fmtListBulletSpace, "\\t", "\t", -1)
 		bulletIndent := strings.Replace(*fmtListIndent, "\\t", "\t", -1)
