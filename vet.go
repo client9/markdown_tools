@@ -112,6 +112,8 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 		if raw[i] != '(' {
 			continue
 		}
+
+/*
 		// if we had spaces between ']' and '(' then
 		// something is wrong.
 		if spaceCount > 0 {
@@ -120,7 +122,7 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 				Reason: FaultLinkSpaceBetweenTextAndLink,
 			})
 		}
-
+*/
 		i++
 		j = bytes.IndexByte(raw[i:], ')')
 		if j == -1 {
@@ -173,14 +175,15 @@ func runawayCodeFence(raw []byte, faults []Fault) []Fault {
 		if idx == 0 || raw[idx+i-1] == '\n' {
 			count++
 			last = idx + i
-			idx = last + len(codeFenceMarker)
 
 			// valid is ```[ ]*[a-z]*\n
 			// invalid is ```[ ]+\n
 
 			// skip whitespace
 			ws := 0
-			for idx = last + len(codeFenceMarker); idx < len(raw) && raw[idx] == ' '; idx ++ {  ws++ }
+			for idx = last + len(codeFenceMarker); idx < len(raw) && raw[idx] == ' '; idx++ {
+				ws++
+			}
 
 			// if next char is a newline, then fault
 			if idx < len(raw) && ws > 0 && raw[idx] == '\n' {

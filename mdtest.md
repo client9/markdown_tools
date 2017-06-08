@@ -57,7 +57,7 @@ No.
 ```
 [link test](https://www.client9.com/
  "line 1 line 2")
-```
+```              
 
 ## link title  with parans on new line
 
@@ -83,7 +83,7 @@ No.
 
 ```
 <https://www.client9.com>
-```
+```   
 
 <https://www.client9.com>
 

@@ -102,7 +102,7 @@ var cases = []testcase{
 	},
 	// trailing whitespace  after code fence plus tag
 	{
-		input: "``` go\ncode\n```\nsomething\n",
+		input:  "``` go\ncode\n```\nsomething\n",
 		faults: []Fault{},
 	},
 }
