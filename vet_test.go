@@ -82,15 +82,6 @@ var cases = []testcase{
 			},
 		},
 	},
-	// whitespace between text and url
-	{
-		input: "[text] (https://golang.org)",
-		faults: []Fault{
-			{
-				Reason: FaultLinkSpaceBetweenTextAndLink,
-			},
-		},
-	},
 	// trailing whitespace after code fense
 	{
 		input: "```\ncode\n``` \nsomething\n",

@@ -11,15 +11,18 @@ import (
 )
 
 type fmtRenderer struct {
-	debug     *log.Logger
-	olCount   map[*bf.Node]int
-	listDepth int
+	debug        *log.Logger
+	olCount      map[*bf.Node]int
+	inlink       bool
+	inlinkBuffer *bytes.Buffer
+	listDepth    int
 }
 
 func newFmtRenderer() *fmtRenderer {
 	return &fmtRenderer{
-		debug:   log.New(os.Stderr, "debug ", 0),
-		olCount: make(map[*bf.Node]int),
+		debug:        log.New(os.Stderr, "debug ", 0),
+		olCount:      make(map[*bf.Node]int),
+		inlinkBuffer: new(bytes.Buffer),
 	}
 
 }
@@ -42,11 +45,19 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 	case bf.Document:
 		break
 	case bf.Text:
-		w.Write(node.Literal)
+		out := w
+		if f.inlink {
+			out = f.inlinkBuffer
+		}
+		out.Write(node.Literal)
 	case bf.Code:
-		w.Write([]byte{'`'})
-		w.Write(node.Literal)
-		w.Write([]byte{'`'})
+		out := w
+		if f.inlink {
+			out = f.inlinkBuffer
+		}
+		out.Write([]byte{'`'})
+		out.Write(node.Literal)
+		out.Write([]byte{'`'})
 	case bf.CodeBlock:
 		// TBD node.CodeBlockData.IsFenced
 		// TBD parent is list item or not?
@@ -59,9 +70,17 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 		w.Write(node.Literal)
 		w.Write([]byte{'`', '`', '`', '\n'})
 	case bf.Emph:
-		w.Write([]byte{'*'})
+		out := w
+		if f.inlink {
+			out = f.inlinkBuffer
+		}
+		out.Write([]byte{'*'})
 	case bf.Strong:
-		w.Write([]byte{'*', '*'})
+		out := w
+		if f.inlink {
+			out = f.inlinkBuffer
+		}
+		out.Write([]byte{'*', '*'})
 	case bf.Heading:
 		if !entering {
 			w.Write([]byte{'\n', '\n'})
@@ -73,6 +92,22 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 		w.Write([]byte{'\n'})
 		w.Write([]byte{'-', '-', '-'})
 		w.Write([]byte{'\n'})
+	case bf.Link:
+		if entering {
+			f.inlinkBuffer.Reset()
+			f.inlink = true
+		} else {
+			f.inlink = false
+			// TODO add link title info
+
+			w.Write([]byte{'['})
+			w.Write(f.inlinkBuffer.Bytes())
+			w.Write([]byte{']'})
+			// TBD add space
+			w.Write([]byte{'('})
+			w.Write(node.LinkData.Destination)
+			w.Write([]byte{')'})
+		}
 	case bf.List:
 		if entering {
 			f.listDepth++

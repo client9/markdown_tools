@@ -12,6 +12,10 @@ var fmtcases = [][2]string{
 	{"# h1 *emph*", "# h1 *emph*"},
 	{"# h1 *emph* **strong** ***triple***", "# h1 *emph* **strong** ***triple***"},
 	{" `foo` ", "`foo`"},
+	{"[text](url)", "[text](url)"},
+	{"[***triple bold***](url)", "[***triple bold***](url)"},
+	{"<https://golang.org/>", "<https://golang.org/>"},
+	{"a https://golang.org/ b", "a https://golang.org/ b"},
 	{"``` foo\ncode\n```", "```foo\ncode\n```"},
 	{"* 1\n* 2\n* 3\n", "- 1\n- 2\n- 3\n"},
 	{`
