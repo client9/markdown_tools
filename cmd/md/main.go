@@ -107,7 +107,7 @@ func main() {
 			faults := mdtool.Vet(rawin)
 			for _, f := range faults {
 				errCount++
-				fmt.Printf("%d:%d offset=%d reason=%s %q\n", f.Row, f.Column, f.Offset, f.Reason, f.Line)
+				fmt.Printf("%s:%d:%d offset=%d reason=%s %q\n", name, f.Row, f.Column, f.Offset, f.Reason, f.Line)
 			}
 		}
 		if errCount > 0 {
