@@ -144,3 +144,27 @@ https://www.client9.com/?(foo)
 
 3. three
 
+## blockquote plus code in list
+
+```
+1. one
+2. two
+
+    > ```foo
+    > line1
+    > line2
+    > ```
+
+3. three
+```
+
+1. one
+2. two
+
+    > ```foo
+    > line1
+    > line2
+    > ```
+
+3. three
+
