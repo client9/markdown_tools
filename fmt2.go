@@ -10,14 +10,14 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
-type FmtRenderer struct {
+type fmtRenderer struct {
 	debug     *log.Logger
 	olCount   map[*bf.Node]int
 	listDepth int
 }
 
-func NewFmtRenderer() *FmtRenderer {
-	return &FmtRenderer{
+func newFmtRenderer() *fmtRenderer {
+	return &fmtRenderer{
 		debug:   log.New(os.Stderr, "debug ", 0),
 		olCount: make(map[*bf.Node]int),
 	}
@@ -25,7 +25,7 @@ func NewFmtRenderer() *FmtRenderer {
 }
 
 // Render does a generic walk
-func (f *FmtRenderer) Render(ast *bf.Node) []byte {
+func (f *fmtRenderer) Render(ast *bf.Node) []byte {
 	var buf bytes.Buffer
 	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
 		return f.RenderNode(&buf, node, entering)
@@ -33,7 +33,8 @@ func (f *FmtRenderer) Render(ast *bf.Node) []byte {
 	return buf.Bytes()
 }
 
-func (f *FmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
+// RenderNode renders a node to a write
+func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	switch node.Type {
 	// case bf.BlockQuote
 	case bf.Paragraph:
@@ -99,7 +100,6 @@ func (f *FmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 				w.Write([]byte{'-'})
 			}
 			w.Write([]byte{' '})
-		} else {
 		}
 
 	default:
@@ -108,7 +108,8 @@ func (f *FmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 	return bf.GoToNext
 }
 
+// Fmt2 reformats Markdown using BlackFriday v2
 func Fmt2(input []byte) []byte {
-	r := NewFmtRenderer()
+	r := newFmtRenderer()
 	return bf.Markdown(input, bf.WithRenderer(r))
 }

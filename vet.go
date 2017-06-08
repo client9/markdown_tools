@@ -113,16 +113,16 @@ func verifyURL(raw []byte, faults []Fault) []Fault {
 			continue
 		}
 
-/*
-		// if we had spaces between ']' and '(' then
-		// something is wrong.
-		if spaceCount > 0 {
-			faults = append(faults, Fault{
-				Offset: start,
-				Reason: FaultLinkSpaceBetweenTextAndLink,
-			})
-		}
-*/
+		/*
+			// if we had spaces between ']' and '(' then
+			// something is wrong.
+			if spaceCount > 0 {
+				faults = append(faults, Fault{
+					Offset: start,
+					Reason: FaultLinkSpaceBetweenTextAndLink,
+				})
+			}
+		*/
 		i++
 		j = bytes.IndexByte(raw[i:], ')')
 		if j == -1 {

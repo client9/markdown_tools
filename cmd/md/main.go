@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ var (
 
 var (
 	versionCommand     = kingpin.Command("version", "show version and exit")
+	astCommand         = kingpin.Command("ast", "dump JSON representation of AST")
 	vetCommand         = kingpin.Command("vet", "vet markdown structure")
 	vetFiles           = vetCommand.Arg("files", "file to process, if none use stdin").Strings()
 	fmtCommand         = kingpin.Command("fmt", "reformat markdown")
@@ -40,6 +42,18 @@ func main() {
 	case "version":
 		fmt.Println(version)
 		os.Exit(2)
+	case "ast":
+		rawin, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		node := mdtool.Ast(rawin)
+		rawout, err := json.MarshalIndent(node, "", "   ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(rawout))
+		return
 	case "fmt2":
 		rawin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -122,6 +136,8 @@ func main() {
 		switch *renderType {
 		case "html":
 			rawout = mdtool.RenderHTML(rawin)
+		case "html2":
+			rawout = mdtool.RenderHTML2(rawin)
 		case "github":
 			rawout = mdtool.RenderGitHub(rawin)
 		default:

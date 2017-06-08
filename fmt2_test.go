@@ -1,12 +1,9 @@
 package mdtool
 
-
 import (
 	"strings"
 	"testing"
-
-
-//        bf "gopkg.in/russross/blackfriday.v2"
+	//        bf "gopkg.in/russross/blackfriday.v2"
 )
 
 var fmtcases = [][2]string{
@@ -24,31 +21,31 @@ var fmtcases = [][2]string{
   - 2.2
 - 1.3
 `,
-`
+		`
 - 1.1
 - 1.2
     - 2.1
     - 2.2
 - 1.3
 `},
-{`
+	{`
 1. one
 1. two
 1. three
 `,
-`
+		`
 1. one
 2. two
 3. three
 `},
-{`
+	{`
 1. one
 1. two
   1. two.one
   1. two.two
 1. three
 `,
-`
+		`
 1. one
 2. two
     1. two.one
@@ -62,7 +59,7 @@ func TestFmt2(t *testing.T) {
 		src := []byte(tt[0])
 		want := strings.TrimSpace(tt[1])
 		got := strings.TrimSpace(string(Fmt2(src)))
-		if got != want  {
+		if got != want {
 			t.Errorf("Case %d)\n'%s'\n'%s'", idx, want, got)
 		}
 	}
