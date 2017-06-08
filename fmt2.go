@@ -10,6 +10,25 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
+type stack []io.Writer
+
+// add item
+func (s *stack) Push(v io.Writer) {
+    *s = append(*s, v)
+}
+
+// get current item
+func (s *stack) Peek() io.Writer {
+    return (*s)[len(*s)-1)
+}
+
+// remove last item
+func (s *stack) Pop() io.Writer {
+    res:=(*s)[len(*s)-1]
+    *s=(*s)[:len(*s)-1]
+    return res
+}
+
 type fmtRenderer struct {
 	debug        *log.Logger
 	olCount      map[*bf.Node]int
@@ -18,7 +37,7 @@ type fmtRenderer struct {
 	inpara       bool
 	inlinkBuffer *bytes.Buffer
 	inimgBuffer  *bytes.Buffer
-	paraBuffer   *bytes.Buffer
+	inparaBuffer   *bytes.Buffer
 	listDepth    int
 }
 
@@ -28,7 +47,7 @@ func newFmtRenderer() *fmtRenderer {
 		olCount:      make(map[*bf.Node]int),
 		inlinkBuffer: new(bytes.Buffer),
 		inimgBuffer: new(bytes.Buffer),
-		paraBuffer: new(bytes.Buffer),
+		inparaBuffer: new(bytes.Buffer),
 	}
 
 }
@@ -44,7 +63,7 @@ func (f *fmtRenderer) Writer(w io.Writer) io.Writer {
 		return f.inlinkBuffer
 	}
 	if f.inpara {
-		return f.paraBuffer
+		return f.inparaBuffer
 	}
 	return w
 }
@@ -72,7 +91,9 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 			out.Write(f.inparaBuffer.Bytes())
 		}
 	case bf.Document:
-		break
+		if entering {
+			writers.Push(w)
+		}
 	case bf.Text:
 		out := f.Writer(w)
 		out.Write(node.Literal)
