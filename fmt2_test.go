@@ -14,6 +14,8 @@ var fmtcases = [][2]string{
 	{" `foo` ", "`foo`"},
 	{"[text](url)", "[text](url)"},
 	{"[***triple bold***](url)", "[***triple bold***](url)"},
+	{"![alt](image.jpg)", "![alt](image.jpg)"},
+	{"[![alt](image.jpg)](url)", "[![alt](image.jpg)](url)"},
 	{"<https://golang.org/>", "<https://golang.org/>"},
 	{"a https://golang.org/ b", "a https://golang.org/ b"},
 	{"``` foo\ncode\n```", "```foo\ncode\n```"},

@@ -14,7 +14,11 @@ type fmtRenderer struct {
 	debug        *log.Logger
 	olCount      map[*bf.Node]int
 	inlink       bool
+	inimg        bool
+	inpara       bool
 	inlinkBuffer *bytes.Buffer
+	inimgBuffer  *bytes.Buffer
+	paraBuffer   *bytes.Buffer
 	listDepth    int
 }
 
@@ -23,8 +27,26 @@ func newFmtRenderer() *fmtRenderer {
 		debug:        log.New(os.Stderr, "debug ", 0),
 		olCount:      make(map[*bf.Node]int),
 		inlinkBuffer: new(bytes.Buffer),
+		inimgBuffer: new(bytes.Buffer),
+		paraBuffer: new(bytes.Buffer),
 	}
 
+}
+
+func (f *fmtRenderer) Writer(w io.Writer) io.Writer {
+	// might need to be a stack
+	// but for now, and img can be inside a link
+	// so img comes first.
+	if f.inimg {
+		return f.inimgBuffer
+	}
+	if f.inlink {
+		return f.inlinkBuffer
+	}
+	if f.inpara {
+		return f.paraBuffer
+	}
+	return w
 }
 
 // Render does a generic walk
@@ -41,45 +63,46 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 	switch node.Type {
 	// case bf.BlockQuote
 	case bf.Paragraph:
-		break
+		if entering {
+			f.inparaBuffer.Reset()
+			f.inpara = true
+		} else {
+			f.inpara = false
+			out := f.Writer(w)
+			out.Write(f.inparaBuffer.Bytes())
+		}
 	case bf.Document:
 		break
 	case bf.Text:
-		out := w
-		if f.inlink {
-			out = f.inlinkBuffer
-		}
+		out := f.Writer(w)
 		out.Write(node.Literal)
 	case bf.Code:
-		out := w
-		if f.inlink {
-			out = f.inlinkBuffer
-		}
+		out := f.Writer(w)
 		out.Write([]byte{'`'})
 		out.Write(node.Literal)
 		out.Write([]byte{'`'})
 	case bf.CodeBlock:
+		// codeblocks can be inside a list or blockquote
+		// so need to get writer
+		out := f.Writer(w)
 		// TBD node.CodeBlockData.IsFenced
 		// TBD parent is list item or not?
 		// TBD parent is blockquote or not?
-		w.Write([]byte{'`', '`', '`'})
+		out.Write([]byte{'`', '`', '`'})
 		if len(node.CodeBlockData.Info) != 0 {
-			w.Write(node.CodeBlockData.Info)
+			out.Write(node.CodeBlockData.Info)
 		}
-		w.Write([]byte{'\n'})
-		w.Write(node.Literal)
-		w.Write([]byte{'`', '`', '`', '\n'})
+		out.Write([]byte{'\n'})
+		out.Write(node.Literal)
+		out.Write([]byte{'`', '`', '`', '\n'})
+	case bf.Del:
+		out := f.Writer(w)
+		out.Write([]byte{'~', '~'})
 	case bf.Emph:
-		out := w
-		if f.inlink {
-			out = f.inlinkBuffer
-		}
+		out := f.Writer(w)
 		out.Write([]byte{'*'})
 	case bf.Strong:
-		out := w
-		if f.inlink {
-			out = f.inlinkBuffer
-		}
+		out := f.Writer(w)
 		out.Write([]byte{'*', '*'})
 	case bf.Heading:
 		if !entering {
@@ -92,6 +115,25 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 		w.Write([]byte{'\n'})
 		w.Write([]byte{'-', '-', '-'})
 		w.Write([]byte{'\n'})
+	case bf.Image:
+		if entering {
+			f.inimgBuffer.Reset()
+			f.inimg = true
+		} else {
+			imgalt := f.inimgBuffer.Bytes()
+			f.inimg = false
+
+			// image can be in a link!
+			// [![alt](url)](text)
+			out := f.Writer(w)
+			out.Write([]byte{'!','['})
+			out.Write(imgalt)
+			out.Write([]byte{']'})
+			// todo
+			out.Write([]byte{'('})
+			out.Write(node.LinkData.Destination)
+			out.Write([]byte{')'})
+		}
 	case bf.Link:
 		if entering {
 			f.inlinkBuffer.Reset()
