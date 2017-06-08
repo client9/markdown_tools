@@ -103,6 +103,27 @@ https://www.client9.com/?(foo)
 
 https://www.client9.com/?(foo)
 
+## block in list
+
+```
+* one
+* two
+
+    indent1
+    indent2
+
+* three
+```
+
+1. one
+2. two
+
+    indent1
+    indent2
+
+3.  three
+
+
 ## blockquote in list
 
 ```
@@ -115,11 +136,11 @@ https://www.client9.com/?(foo)
 * three
 ```
 
-* one
-* two
+1. one
+2. two
 
     > indent1
     > indent2
 
-* three
+3. three
 
