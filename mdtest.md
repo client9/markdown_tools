@@ -102,3 +102,24 @@ https://www.client9.com/?(foo)
 ```
 
 https://www.client9.com/?(foo)
+
+## blockquote in list
+
+```
+* one
+* two
+
+    > indent1
+    > indent2
+
+* three
+```
+
+* one
+* two
+
+    > indent1
+    > indent2
+
+* three
+
