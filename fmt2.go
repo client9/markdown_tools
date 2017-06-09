@@ -10,102 +10,81 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
-type stack []io.Writer
+type stack []*bytes.Buffer
 
 // add item
-func (s *stack) Push(v io.Writer) {
-    *s = append(*s, v)
+func (s *stack) Push(v *bytes.Buffer) {
+	*s = append(*s, v)
 }
 
 // get current item
-func (s *stack) Peek() io.Writer {
-    return (*s)[len(*s)-1)
+func (s *stack) Peek() *bytes.Buffer {
+	return (*s)[len(*s)-1]
 }
 
 // remove last item
-func (s *stack) Pop() io.Writer {
-    res:=(*s)[len(*s)-1]
-    *s=(*s)[:len(*s)-1]
-    return res
+func (s *stack) Pop() *bytes.Buffer {
+	res := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
+	return res
 }
 
 type fmtRenderer struct {
-	debug        *log.Logger
-	olCount      map[*bf.Node]int
-	inlink       bool
-	inimg        bool
-	inpara       bool
-	inlinkBuffer *bytes.Buffer
-	inimgBuffer  *bytes.Buffer
-	inparaBuffer   *bytes.Buffer
-	listDepth    int
+	debug     *log.Logger
+	olCount   map[*bf.Node]int
+	bufs      stack
+	listDepth int
 }
 
 func newFmtRenderer() *fmtRenderer {
 	return &fmtRenderer{
-		debug:        log.New(os.Stderr, "debug ", 0),
-		olCount:      make(map[*bf.Node]int),
-		inlinkBuffer: new(bytes.Buffer),
-		inimgBuffer: new(bytes.Buffer),
-		inparaBuffer: new(bytes.Buffer),
+		debug:   log.New(os.Stderr, "debug ", 0),
+		olCount: make(map[*bf.Node]int),
+		bufs:    make(stack, 0, 16),
 	}
 
 }
 
-func (f *fmtRenderer) Writer(w io.Writer) io.Writer {
-	// might need to be a stack
-	// but for now, and img can be inside a link
-	// so img comes first.
-	if f.inimg {
-		return f.inimgBuffer
-	}
-	if f.inlink {
-		return f.inlinkBuffer
-	}
-	if f.inpara {
-		return f.inparaBuffer
-	}
-	return w
+func (f *fmtRenderer) Writer() io.Writer {
+	return f.bufs.Peek()
 }
 
 // Render does a generic walk
 func (f *fmtRenderer) Render(ast *bf.Node) []byte {
-	var buf bytes.Buffer
+	buf := new(bytes.Buffer)
+	f.bufs.Push(buf)
 	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
-		return f.RenderNode(&buf, node, entering)
+		return f.RenderNode(buf, node, entering)
 	})
-	return buf.Bytes()
+	return f.bufs.Pop().Bytes()
 }
 
 // RenderNode renders a node to a write
-func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
+func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	switch node.Type {
 	// case bf.BlockQuote
 	case bf.Paragraph:
 		if entering {
-			f.inparaBuffer.Reset()
-			f.inpara = true
+			f.bufs.Push(new(bytes.Buffer))
 		} else {
-			f.inpara = false
-			out := f.Writer(w)
-			out.Write(f.inparaBuffer.Bytes())
+			ptext := f.bufs.Pop().Bytes()
+			out := f.Writer()
+			out.Write(ptext)
 		}
 	case bf.Document:
-		if entering {
-			writers.Push(w)
-		}
+		break
 	case bf.Text:
-		out := f.Writer(w)
+		out := f.Writer()
 		out.Write(node.Literal)
 	case bf.Code:
-		out := f.Writer(w)
+		out := f.Writer()
 		out.Write([]byte{'`'})
 		out.Write(node.Literal)
 		out.Write([]byte{'`'})
 	case bf.CodeBlock:
 		// codeblocks can be inside a list or blockquote
 		// so need to get writer
-		out := f.Writer(w)
+		out := f.Writer()
 		// TBD node.CodeBlockData.IsFenced
 		// TBD parent is list item or not?
 		// TBD parent is blockquote or not?
@@ -117,37 +96,37 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 		out.Write(node.Literal)
 		out.Write([]byte{'`', '`', '`', '\n'})
 	case bf.Del:
-		out := f.Writer(w)
+		out := f.Writer()
 		out.Write([]byte{'~', '~'})
 	case bf.Emph:
-		out := f.Writer(w)
+		out := f.Writer()
 		out.Write([]byte{'*'})
 	case bf.Strong:
-		out := f.Writer(w)
+		out := f.Writer()
 		out.Write([]byte{'*', '*'})
 	case bf.Heading:
+		out := f.Writer()
 		if !entering {
-			w.Write([]byte{'\n', '\n'})
+			out.Write([]byte{'\n', '\n'})
 			break
 		}
-		w.Write(bytes.Repeat([]byte{'#'}, node.HeadingData.Level))
-		w.Write([]byte{' '})
+		out.Write(bytes.Repeat([]byte{'#'}, node.HeadingData.Level))
+		out.Write([]byte{' '})
 	case bf.HorizontalRule:
-		w.Write([]byte{'\n'})
-		w.Write([]byte{'-', '-', '-'})
-		w.Write([]byte{'\n'})
+		out := f.Writer()
+		out.Write([]byte{'\n'})
+		out.Write([]byte{'-', '-', '-'})
+		out.Write([]byte{'\n'})
 	case bf.Image:
 		if entering {
-			f.inimgBuffer.Reset()
-			f.inimg = true
+			f.bufs.Push(new(bytes.Buffer))
 		} else {
-			imgalt := f.inimgBuffer.Bytes()
-			f.inimg = false
+			imgalt := f.bufs.Pop().Bytes()
 
 			// image can be in a link!
 			// [![alt](url)](text)
-			out := f.Writer(w)
-			out.Write([]byte{'!','['})
+			out := f.Writer()
+			out.Write([]byte{'!', '['})
 			out.Write(imgalt)
 			out.Write([]byte{']'})
 			// todo
@@ -157,47 +136,50 @@ func (f *fmtRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.W
 		}
 	case bf.Link:
 		if entering {
-			f.inlinkBuffer.Reset()
-			f.inlink = true
+			f.bufs.Push(new(bytes.Buffer))
 		} else {
-			f.inlink = false
+			linktext := f.bufs.Pop().Bytes()
 			// TODO add link title info
-
-			w.Write([]byte{'['})
-			w.Write(f.inlinkBuffer.Bytes())
-			w.Write([]byte{']'})
+			out := f.Writer()
+			out.Write([]byte{'['})
+			out.Write(linktext)
+			out.Write([]byte{']'})
 			// TBD add space
-			w.Write([]byte{'('})
-			w.Write(node.LinkData.Destination)
-			w.Write([]byte{')'})
+			out.Write([]byte{'('})
+			out.Write(node.LinkData.Destination)
+			out.Write([]byte{')'})
 		}
 	case bf.List:
 		if entering {
+			f.bufs.Push(new(bytes.Buffer))
 			f.listDepth++
 			if node.ListFlags&bf.ListTypeOrdered != 0 {
 				f.olCount[node] = 0
 			}
 		} else {
+			listtext := f.bufs.Pop().Bytes()
+			out := f.Writer()
+			out.Write(listtext)
+
 			f.listDepth--
 			if f.listDepth < 0 {
 				panic("underflow listdepth")
 			}
 			delete(f.olCount, node)
-			//w.Write([]byte{'\n'})
 		}
 	case bf.Item:
-		f.debug.Printf("RENDER NODE: [%v] %+v", entering, *node)
 		if entering {
-			w.Write([]byte{'\n'})
-			w.Write(bytes.Repeat([]byte{' ', ' ', ' ', ' '}, f.listDepth-1))
+			out := f.Writer()
+			out.Write([]byte{'\n'})
+			out.Write(bytes.Repeat([]byte{' ', ' ', ' ', ' '}, f.listDepth-1))
 			if node.ListFlags&bf.ListTypeOrdered != 0 {
 				f.olCount[node.Parent]++
-				w.Write([]byte(strconv.Itoa(f.olCount[node.Parent])))
-				w.Write([]byte{'.'})
+				out.Write([]byte(strconv.Itoa(f.olCount[node.Parent])))
+				out.Write([]byte{'.'})
 			} else {
-				w.Write([]byte{'-'})
+				out.Write([]byte{'-'})
 			}
-			w.Write([]byte{' '})
+			out.Write([]byte{' '})
 		}
 
 	default:
