@@ -100,7 +100,6 @@ var cases = []testcase{
 
 func TestVet(t *testing.T) {
 	for i, tt := range cases {
-		log.Printf("CASE %d", i)
 		faults := Vet([]byte(tt.input))
 		if len(faults) != len(tt.faults) {
 			t.Errorf("%d: %q want %d faults got %d",
