@@ -8,6 +8,7 @@ import (
 
 var fmtcases = [][2]string{
 	{"# h1", "# h1"},
+	{"# *h1*", "# *h1*"},
 	{"#  h1", "# h1"},
 	{"# h1 *emph*", "# h1 *emph*"},
 	{"# h1 *emph* **strong** ***triple***", "# h1 *emph* **strong** ***triple***"},

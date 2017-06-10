@@ -1,7 +1,6 @@
 package mdtool
 
 import (
-	"log"
 	"testing"
 )
 

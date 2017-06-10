@@ -4,6 +4,21 @@ import (
 	"bytes"
 )
 
+func writeIndent(src []byte, indent string) []byte {
+	buf := bytes.Buffer{}
+	lines := bytes.Split(src, []byte{'\n'})
+	for i, line := range lines {
+		// we want to leave the last line without
+		// a \n since we'll add it later.
+		if i != 0 {
+			buf.WriteByte('\n')
+		}
+		buf.WriteString(indent)
+		buf.Write(line)
+	}
+	return buf.Bytes()
+}
+
 // WordWrap formats text word wrap, including initial prefix and ongoing
 // indentation
 func WordWrap(src []byte, length int, prefix string, indent string) []byte {
@@ -17,7 +32,7 @@ func WordWrap(src []byte, length int, prefix string, indent string) []byte {
 	}
 	col := prefixLen
 	words := bytes.Fields(src)
-	for _, word := range words {
+	for i, word := range words {
 		// if word is so big, just add it an call it a day
 		if len(word) >= length-indentLen {
 			out.Write(word)
@@ -27,7 +42,7 @@ func WordWrap(src []byte, length int, prefix string, indent string) []byte {
 			continue
 		}
 		if len(word)+col+1 < length {
-			if col != indentLen {
+			if i != 0 {
 				out.WriteByte(' ')
 				col++
 			}

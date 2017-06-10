@@ -6,27 +6,56 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
-type stack []*bytes.Buffer
+const indent1 = "    "
+
+type state struct {
+	buf    *bytes.Buffer
+	indent string
+}
+
+type stack []state
 
 // add item
-func (s *stack) Push(v *bytes.Buffer) {
-	*s = append(*s, v)
+func (s *stack) Push(v *bytes.Buffer, prefix string) {
+	indent := ""
+	if len(*s) != 0 {
+		indent = (*s)[len(*s)-1].indent
+	}
+	indent += prefix
+	*s = append(*s, state{buf: v, indent: indent})
 }
 
 // get current item
 func (s *stack) Peek() *bytes.Buffer {
-	return (*s)[len(*s)-1]
+	return (*s)[len(*s)-1].buf
+}
+
+func (s *stack) CurrentIndent() string {
+	return (*s)[len(*s)-1].indent
 }
 
 // remove last item
-func (s *stack) Pop() *bytes.Buffer {
+func (s *stack) Pop() (*bytes.Buffer, string) {
 	res := (*s)[len(*s)-1]
 	*s = (*s)[:len(*s)-1]
-	return res
+	return res.buf, res.indent
+}
+
+func isPrevBlock(n *bf.Node) bool {
+	prev := n.Prev
+	if prev == nil {
+		return false
+	}
+	switch prev.Type {
+	case bf.Paragraph, bf.BlockQuote, bf.CodeBlock, bf.List, bf.Heading:
+		return true
+	}
+	return false
 }
 
 type fmtRenderer struct {
@@ -34,6 +63,8 @@ type fmtRenderer struct {
 	olCount   map[*bf.Node]int
 	bufs      stack
 	listDepth int
+
+	linelen int
 }
 
 func newFmtRenderer() *fmtRenderer {
@@ -41,35 +72,79 @@ func newFmtRenderer() *fmtRenderer {
 		debug:   log.New(os.Stderr, "debug ", 0),
 		olCount: make(map[*bf.Node]int),
 		bufs:    make(stack, 0, 16),
+		linelen: 70,
 	}
 
 }
 
-func (f *fmtRenderer) Writer() io.Writer {
+func (f *fmtRenderer) Writer() *bytes.Buffer {
 	return f.bufs.Peek()
 }
 
 // Render does a generic walk
 func (f *fmtRenderer) Render(ast *bf.Node) []byte {
 	buf := new(bytes.Buffer)
-	f.bufs.Push(buf)
+	f.bufs.Push(buf, "")
 	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
 		return f.RenderNode(buf, node, entering)
 	})
-	return f.bufs.Pop().Bytes()
+	f.bufs.Pop()
+	if len(f.bufs) != 0 {
+		panic("internal error, buffer stack underflow")
+	}
+	return buf.Bytes()
 }
 
 // RenderNode renders a node to a write
 func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	switch node.Type {
-	// case bf.BlockQuote
+	case bf.BlockQuote:
+		if entering {
+			out := f.Writer()
+			indent := "> "
+			if isPrevBlock(node) {
+				out.WriteString("\n\n")
+			} else if node.Parent.Type == bf.Item {
+				indent = indent1 + indent
+				out.Write([]byte{'\n'})
+			}
+			f.bufs.Push(new(bytes.Buffer), indent)
+		} else {
+			ptext, _ := f.bufs.Pop()
+			out := f.Writer()
+			out.Write(ptext.Bytes())
+			if node.Parent.Type == bf.Item {
+				out.Write([]byte{'\n'})
+			}
+		}
 	case bf.Paragraph:
 		if entering {
-			f.bufs.Push(new(bytes.Buffer))
+			indent := ""
+			// handle case of
+			if node.Parent.Type == bf.Item && node.Prev != nil {
+				indent = indent1
+			}
+			f.bufs.Push(new(bytes.Buffer), indent)
 		} else {
-			ptext := f.bufs.Pop().Bytes()
+			ptext, indent := f.bufs.Pop()
 			out := f.Writer()
-			out.Write(ptext)
+			if node.Parent.Type == bf.Item && node.Prev != nil {
+				// lists are special:  indent and bullet has already been
+				// printed.
+				out.WriteString("\n\n")
+				out.Write(WordWrap(ptext.Bytes(), f.linelen, indent, indent))
+				out.WriteByte('\n')
+			} else {
+				prefix := indent
+				if node.Parent.Type == bf.Item {
+					prefix = ""
+				}
+
+				if isPrevBlock(node) {
+					out.WriteString("\n\n")
+				}
+				out.Write(WordWrap(ptext.Bytes(), f.linelen, prefix, indent))
+			}
 		}
 	case bf.Document:
 		break
@@ -78,40 +153,51 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		out.Write(node.Literal)
 	case bf.Code:
 		out := f.Writer()
-		out.Write([]byte{'`'})
+		out.WriteByte('`')
 		out.Write(node.Literal)
-		out.Write([]byte{'`'})
+		out.WriteByte('`')
 	case bf.CodeBlock:
-		// codeblocks can be inside a list or blockquote
-		// so need to get writer
 		out := f.Writer()
-		// TBD node.CodeBlockData.IsFenced
-		// TBD parent is list item or not?
-		// TBD parent is blockquote or not?
-		out.Write([]byte{'`', '`', '`'})
-		if len(node.CodeBlockData.Info) != 0 {
-			out.Write(node.CodeBlockData.Info)
-		}
-		out.Write([]byte{'\n'})
-		out.Write(node.Literal)
-		out.Write([]byte{'`', '`', '`', '\n'})
-	case bf.Del:
-		out := f.Writer()
-		out.Write([]byte{'~', '~'})
-	case bf.Emph:
-		out := f.Writer()
-		out.Write([]byte{'*'})
-	case bf.Strong:
-		out := f.Writer()
-		out.Write([]byte{'*', '*'})
-	case bf.Heading:
-		out := f.Writer()
-		if !entering {
+
+		indent := f.bufs.CurrentIndent()
+		switch node.Parent.Type {
+		case bf.Item:
+			indent += indent1
 			out.Write([]byte{'\n', '\n'})
+		case bf.BlockQuote:
 			break
+		default:
+			if isPrevBlock(node) {
+				out.WriteString("\n\n")
+			}
 		}
-		out.Write(bytes.Repeat([]byte{'#'}, node.HeadingData.Level))
-		out.Write([]byte{' '})
+
+		buf := bytes.Buffer{}
+		buf.WriteString("```")
+		if len(node.CodeBlockData.Info) != 0 {
+			buf.Write(node.CodeBlockData.Info)
+		}
+		buf.WriteByte('\n')
+		buf.Write(node.Literal)
+		buf.WriteString("```")
+
+		out.Write(writeIndent(buf.Bytes(), indent))
+	case bf.Del:
+		f.Writer().WriteString("~~")
+	case bf.Emph:
+		f.Writer().WriteByte('*')
+	case bf.Strong:
+		f.Writer().WriteString("**")
+	case bf.Heading:
+		if entering {
+			f.bufs.Push(new(bytes.Buffer), "")
+		} else {
+			inner, _ := f.bufs.Pop()
+			out := f.Writer()
+			out.Write(bytes.Repeat([]byte{'#'}, node.HeadingData.Level))
+			out.WriteByte(' ')
+			out.Write(inner.Bytes())
+		}
 	case bf.HorizontalRule:
 		out := f.Writer()
 		out.Write([]byte{'\n'})
@@ -119,9 +205,10 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		out.Write([]byte{'\n'})
 	case bf.Image:
 		if entering {
-			f.bufs.Push(new(bytes.Buffer))
+			f.bufs.Push(new(bytes.Buffer), "")
 		} else {
-			imgalt := f.bufs.Pop().Bytes()
+			buf, _ := f.bufs.Pop()
+			imgalt := buf.Bytes()
 
 			// image can be in a link!
 			// [![alt](url)](text)
@@ -129,36 +216,45 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 			out.Write([]byte{'!', '['})
 			out.Write(imgalt)
 			out.Write([]byte{']'})
-			// todo
+			// TODO: add space
 			out.Write([]byte{'('})
 			out.Write(node.LinkData.Destination)
 			out.Write([]byte{')'})
 		}
 	case bf.Link:
 		if entering {
-			f.bufs.Push(new(bytes.Buffer))
+			f.bufs.Push(new(bytes.Buffer), "")
 		} else {
-			linktext := f.bufs.Pop().Bytes()
+			buf, _ := f.bufs.Pop()
+			linktext := buf.Bytes()
 			// TODO add link title info
 			out := f.Writer()
-			out.Write([]byte{'['})
+			out.WriteByte('[')
 			out.Write(linktext)
-			out.Write([]byte{']'})
+			out.WriteByte(']')
 			// TBD add space
-			out.Write([]byte{'('})
+			out.WriteByte('(')
 			out.Write(node.LinkData.Destination)
-			out.Write([]byte{')'})
+			out.WriteByte(')')
 		}
 	case bf.List:
 		if entering {
-			f.bufs.Push(new(bytes.Buffer))
+			indent := ""
+			if f.listDepth > 0 {
+				indent = indent1
+			}
+			f.bufs.Push(new(bytes.Buffer), indent)
 			f.listDepth++
 			if node.ListFlags&bf.ListTypeOrdered != 0 {
 				f.olCount[node] = 0
 			}
 		} else {
-			listtext := f.bufs.Pop().Bytes()
+			buf, _ := f.bufs.Pop()
+			listtext := buf.Bytes()
 			out := f.Writer()
+			if isPrevBlock(node) {
+				out.WriteString("\n\n")
+			}
 			out.Write(listtext)
 
 			f.listDepth--
@@ -169,21 +265,32 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		}
 	case bf.Item:
 		if entering {
-			out := f.Writer()
-			out.Write([]byte{'\n'})
-			out.Write(bytes.Repeat([]byte{' ', ' ', ' ', ' '}, f.listDepth-1))
+			// generate bullet
+			buf := bytes.Buffer{}
 			if node.ListFlags&bf.ListTypeOrdered != 0 {
 				f.olCount[node.Parent]++
-				out.Write([]byte(strconv.Itoa(f.olCount[node.Parent])))
-				out.Write([]byte{'.'})
+				buf.WriteString(strconv.Itoa(f.olCount[node.Parent]))
+				buf.WriteByte('.')
 			} else {
-				out.Write([]byte{'-'})
+				buf.WriteByte('-')
 			}
-			out.Write([]byte{' '})
+			buf.WriteByte(' ')
+			bullet := buf.Bytes()
+
+			out := f.Writer()
+			out.WriteString(strings.Repeat(indent1, f.listDepth-1))
+			out.Write(bullet)
+			f.bufs.Push(new(bytes.Buffer), strings.Repeat(" ", len(bullet)))
+		} else {
+			buf, _ := f.bufs.Pop()
+			text := buf.Bytes()
+			out := f.Writer()
+			out.Write(text)
+			out.WriteByte('\n')
 		}
 
 	default:
-		f.debug.Printf("RENDER NODE: [%v] %+v", entering, *node)
+		log.Printf("RENDER NODE: [%v] %+v", entering, *node)
 	}
 	return bf.GoToNext
 }
