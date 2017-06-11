@@ -39,8 +39,7 @@ func NewASTNode(node *bf.Node) *ASTNode {
 
 // Ast takes an input and returns a JSON-friendly ASTNode
 func Ast(src []byte, opts ...bf.Option) *ASTNode {
-	proc := bf.DefaultProcessor()
-	parser := proc.NewParser(opts...)
-	node := parser.Parse(src)
+	md := bf.New(opts...)
+	node := md.Parse(src)
 	return NewASTNode(node)
 }

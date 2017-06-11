@@ -311,5 +311,5 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 // Fmt2 reformats Markdown using BlackFriday v2
 func Fmt2(input []byte) []byte {
 	r := newFmtRenderer()
-	return bf.Markdown(input, bf.WithRenderer(r))
+	return bf.Run(input, bf.WithRenderer(r))
 }
