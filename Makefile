@@ -9,9 +9,6 @@ build: hooks  ## build, install, lint
                  --enable=golint \
                  --enable=gofmt \
                  --enable=goimports \
-                 --enable=gosimple \
-                 --enable=staticcheck \
-                 --enable=ineffassign \
                  ./...
 	go test .
 
