@@ -8,7 +8,7 @@ import (
 type ASTNode struct {
 	Type     string
 	Literal  string      `json:",omitempty"`
-	Attr     interface{} `json:",omitempty"`
+	Attr     interface{} `json:"-"`
 	Children []*ASTNode  `json:",omitempty"`
 }
 
