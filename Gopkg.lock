@@ -107,7 +107,7 @@
   branch = "v2"
   name = "gopkg.in/russross/blackfriday.v2"
   packages = ["."]
-  revision = "e7910a813fbd94acce2680899175fa106b7b1787"
+  revision = "70c446a327c4e69c0f661dc092d9729c3af7472c"
 
 [solve-meta]
   analyzer-name = "dep"
