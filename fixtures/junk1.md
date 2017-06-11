@@ -1,8 +1,6 @@
-* one
-* two
+- one
+- two
 
-    > indent1
-    > indent2
+      > indent1 indent2
 
-* three
-
+- three

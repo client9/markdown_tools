@@ -1,10 +1,9 @@
-* one
-* two
+- one
+- two
 
-    > ```foo
-    > indent1
-    > indent2
-    > ```
+      > ```foo
+      > indent1
+      > indent2
+      > ```
 
-* three
-
+- three
