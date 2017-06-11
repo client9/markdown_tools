@@ -92,6 +92,10 @@ func (f *fmtRenderer) Render(ast *bf.Node) []byte {
 	if len(f.bufs) != 0 {
 		panic("internal error, buffer stack underflow")
 	}
+	out := buf.Bytes()
+	if len(out) > 0 && out[len(out)-1] != '\n' {
+		buf.WriteByte('\n')
+	}
 	return buf.Bytes()
 }
 
@@ -102,11 +106,11 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		if entering {
 			out := f.Writer()
 			indent := "> "
+			if node.Parent.Type == bf.Item {
+				indent = indent1 + indent
+			}
 			if isPrevBlock(node) {
 				out.WriteString("\n\n")
-			} else if node.Parent.Type == bf.Item {
-				indent = indent1 + indent
-				out.Write([]byte{'\n'})
 			}
 			f.bufs.Push(new(bytes.Buffer), indent)
 		} else {
@@ -114,7 +118,7 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 			out := f.Writer()
 			out.Write(ptext.Bytes())
 			if node.Parent.Type == bf.Item {
-				out.Write([]byte{'\n'})
+				out.WriteByte('\n')
 			}
 		}
 	case bf.Paragraph:
@@ -163,6 +167,12 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		switch node.Parent.Type {
 		case bf.Item:
 			indent += indent1
+			leftover := len(indent) % 4
+			// BF Bug: must be multiple of 4
+			//
+			if len(indent)%4 != 0 {
+				indent = indent[:len(indent)-leftover]
+			}
 			out.Write([]byte{'\n', '\n'})
 		case bf.BlockQuote:
 			break
@@ -182,6 +192,9 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		buf.WriteString("```")
 
 		out.Write(writeIndent(buf.Bytes(), indent))
+		if node.Parent.Type == bf.Item {
+			out.WriteByte('\n')
+		}
 	case bf.Del:
 		f.Writer().WriteString("~~")
 	case bf.Emph:
