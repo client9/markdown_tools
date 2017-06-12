@@ -37,11 +37,10 @@ func WordWrap(src []byte, length int, prefix string, indent string) []byte {
 		if len(word) >= length-indentLen {
 			if i != 0 {
 				out.WriteByte(' ')
+				col++
 			}
 			out.Write(word)
-			out.WriteByte('\n')
-			out.WriteString(indent)
-			col = indentLen
+			col += len(word)
 			continue
 		}
 		if len(word)+col+1 < length {
