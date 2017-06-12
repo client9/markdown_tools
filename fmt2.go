@@ -207,6 +207,9 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 		} else {
 			inner, _ := f.bufs.Pop()
 			out := f.Writer()
+			if isPrevBlock(node) {
+				out.WriteString("\n\n")
+			}
 			out.Write(bytes.Repeat([]byte{'#'}, node.HeadingData.Level))
 			out.WriteByte(' ')
 			out.Write(inner.Bytes())
