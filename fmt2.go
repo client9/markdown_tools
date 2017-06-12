@@ -64,15 +64,17 @@ type fmtRenderer struct {
 	bufs      stack
 	listDepth int
 
-	linelen int
+	linelen   int
+	linkTight bool
 }
 
 func newFmtRenderer() *fmtRenderer {
 	return &fmtRenderer{
-		debug:   log.New(os.Stderr, "debug ", 0),
-		olCount: make(map[*bf.Node]int),
-		bufs:    make(stack, 0, 16),
-		linelen: 70,
+		debug:     log.New(os.Stderr, "debug ", 0),
+		olCount:   make(map[*bf.Node]int),
+		bufs:      make(stack, 0, 16),
+		linelen:   70,
+		linkTight: true,
 	}
 
 }
@@ -231,11 +233,13 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 			out := f.Writer()
 			out.Write([]byte{'!', '['})
 			out.Write(imgalt)
-			out.Write([]byte{']'})
-			// TODO: add space
-			out.Write([]byte{'('})
+			out.WriteByte(']')
+			if !f.linkTight {
+				out.WriteByte(' ')
+			}
+			out.WriteByte('(')
 			out.Write(node.LinkData.Destination)
-			out.Write([]byte{')'})
+			out.WriteByte(')')
 		}
 	case bf.Link:
 		if entering {
@@ -248,7 +252,9 @@ func (f *fmtRenderer) RenderNode(_ io.Writer, node *bf.Node, entering bool) bf.W
 			out.WriteByte('[')
 			out.Write(linktext)
 			out.WriteByte(']')
-			// TBD add space
+			if !f.linkTight {
+				out.WriteByte(' ')
+			}
 			out.WriteByte('(')
 			out.Write(node.LinkData.Destination)
 			out.WriteByte(')')
