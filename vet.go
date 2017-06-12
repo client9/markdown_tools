@@ -25,8 +25,6 @@ const (
 	FaultLinkTextWhitespace = FaultType(4)
 	// FaultLinkURLWhitespace is a broken URL with URL having newlines
 	FaultLinkURLWhitespace = FaultType(5)
-	// FaultLinkSpaceBetweenTextAndLink is whitespace between ']' and '('
-	FaultLinkSpaceBetweenTextAndLink = FaultType(6)
 	// FaultCodeFenceTrailingWhitespace is WS after a ```"
 	FaultCodeFenceTrailingWhitespace = FaultType(7)
 )
@@ -43,8 +41,6 @@ func (s FaultType) String() string {
 		return "Link Text with Whitespace"
 	case FaultLinkURLWhitespace:
 		return "Link URL with Whitespace"
-	case FaultLinkSpaceBetweenTextAndLink:
-		return "Whitespace between Link Text and Link URL"
 	case FaultCodeFenceTrailingWhitespace:
 		return "Whitespace after ``` tag"
 	}
