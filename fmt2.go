@@ -88,7 +88,7 @@ func (f *fmtRenderer) Render(ast *bf.Node) []byte {
 	buf := new(bytes.Buffer)
 	f.bufs.Push(buf, "")
 	ast.Walk(func(node *bf.Node, entering bool) bf.WalkStatus {
-		return f.RenderNode(buf, node, entering)
+		return f.RenderNode(nil, node, entering)
 	})
 	f.bufs.Pop()
 	if len(f.bufs) != 0 {
