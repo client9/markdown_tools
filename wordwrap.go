@@ -35,6 +35,9 @@ func WordWrap(src []byte, length int, prefix string, indent string) []byte {
 	for i, word := range words {
 		// if word is so big, just add it an call it a day
 		if len(word) >= length-indentLen {
+			if i != 0 {
+				out.WriteByte(' ')
+			}
 			out.Write(word)
 			out.WriteByte('\n')
 			out.WriteString(indent)
